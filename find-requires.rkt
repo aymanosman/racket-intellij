@@ -19,7 +19,7 @@
       (define stx
         (parameterize ([read-accept-reader #t])
           (parameterize ([current-namespace (make-base-namespace)])
-            (expand (read-syntax path (open-input-file path))))))
+            (expand (read-syntax path in)))))
 
       (syntax-parse stx
         #:literals (module)
