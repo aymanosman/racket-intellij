@@ -8,8 +8,8 @@
 (define (require-form? stx)
   (syntax-parse stx
     #:literals (#%require)
-    [(#%require mod-path)
-     #'mod-path]
+    [(#%require module-path)
+     #'module-path]
     [_
      #f]))
 
