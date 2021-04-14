@@ -28,4 +28,4 @@
 
 (define (find-requires path)
   (for/hash ([stx (require-forms path)])
-    (values (symbol->string (syntax-e stx)) stx)))
+    (values (syntax-e stx) stx)))
