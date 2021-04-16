@@ -17,8 +17,8 @@
                         (printf "~a ~a\n" (syntax-position stx) (syntax-e stx))])
                      (exit 0))]
                   [exn:fail? (lambda (exn)
-                               (println exn)
-                               (exit 1))])
+                               (eprintf "~a" (exn-message exn))
+                               (exit 0))])
     (parameterize ([read-accept-reader #t])
       (parameterize ([current-namespace (make-base-namespace)])
         (expand (read-syntax file-name in))))
@@ -27,6 +27,7 @@
 (define (main . args)
   (define --stdin #f)
   (command-line
+   #:program "intellij/unbound-identifiers"
    #:once-each
    [("--stdin") "Read from stdin" (set! --stdin #t)]
    #:args maybe-path
