@@ -1,37 +1,21 @@
 #lang racket/base
 
-(provide main
-         display-unused-requires)
+(provide main)
 
-(require racket/match
-         racket/cmdline
-         "find-requires.rkt")
-
-(require macro-debugger/analysis/private/util
-         macro-debugger/analysis/private/nom-use-alg
-         macro-debugger/analysis/private/get-references)
-
-;; Copied from macro-debugger package
-(define (analyze-requires mod-path)
-  (let-values ([(compiled deriv) (get-module-code/trace mod-path)])
-    (nom-use-alg (deriv->refs deriv) compiled)))
-
-(define (display-unused-requires mod-path)
-  (with-handlers ([exn:fail?
-                   (lambda (exn)
-                     (eprintf "~a" (exn-message exn)))])
-    (define require=>syntax (find-requires mod-path))
-    (for ([entry (in-list (analyze-requires mod-path))])
-      (match entry
-        [(list 'drop mpi phase)
-         (define key (mpi->key mpi))
-         (define stx (hash-ref require=>syntax key))
-         (printf "~a ~a\n" (syntax-position stx) key)]
-        [_
-         (void)]))))
+(require racket/cmdline
+         "analysis/unused-requires.rkt")
 
 (define (main . args)
+  (define --stdin #f)
   (command-line
    #:program "intellij/unused-requires"
+   #:once-each
+   [("--stdin") "Read from stdin (path is still required)" (set! --stdin #t)]
    #:args (path)
-   (display-unused-requires path)))
+   (cond
+     [--stdin
+      (display-unused-requires (current-input-port) path)]
+     [else
+      (call-with-input-file path
+        (lambda (in)          
+          (display-unused-requires in path)))])))
