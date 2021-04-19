@@ -3,9 +3,14 @@
 (provide display-expand-errors)
 
 (require racket/list
-         racket/string)
+         racket/string
+         "lint-with-expand/find-matching-module-path.rkt")
 
 (define (display-expand-errors in [file-name "<stdin>"])
+  (define file-stx
+    (parameterize ([read-accept-reader #t])
+      (read-syntax file-name in)))
+
   (with-handlers ([exn:fail:syntax:unbound?
                    (lambda (exn)
                      (define exprs (exn:fail:syntax-exprs exn))
@@ -30,16 +35,14 @@
                            (write-lint-message/syntax (first exprs) "error detected")])]))]
                   [exn:fail:filesystem:missing-module?
                    (lambda (exn)
-                     (define path (exn:fail:filesystem:missing-module-path exn))
-                     (write-lint-message 0 (format "cannot open module file ~a" (path->string path))))]
+                     (define stx (find-matching-module-path file-stx (exn:fail:filesystem:missing-module-path exn)))
+                     (write-lint-message/syntax stx "cannot open module file"))]
                   [exn:fail?
                    (lambda (exn)
-                     (println exn)
                      (eprintf "~a" (exn-message exn)))])
-    (parameterize ([read-accept-reader #t])
-      (parameterize ([current-namespace (make-base-namespace)])
-        (expand (read-syntax file-name in))))
-    (void)))
+    (parameterize ([current-namespace (make-base-namespace)])
+      (expand file-stx)))
+  (void))
 
 (define (write-lint-message/syntax stx message)
   (write-lint-message (syntax-position stx) message (syntax->datum stx)))
