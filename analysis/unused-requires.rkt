@@ -29,6 +29,6 @@
         [(list 'drop mpi phase)
          (define key (mpi->key mpi))
          (define stx (hash-ref require=>syntax key))
-         (printf "~a ~a\n" (syntax-position stx) key)]
+         (printf "~a ~s ~a\n" (syntax-position stx) "unused require" key)]
         [_
          (void)]))))
