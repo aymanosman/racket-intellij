@@ -7,41 +7,44 @@
          "lint-with-expand/find-matching-module-path.rkt")
 
 (define (display-expand-errors in [file-name "<stdin>"])
-  (define file-stx
-    (parameterize ([read-accept-reader #t])
-      (read-syntax file-name in)))
+  (with-handlers ([exn:fail:read?
+                   (lambda (exn)
+                     (write-lint-message 0 "read failed"))])
+    (define file-stx
+      (parameterize ([read-accept-reader #t])
+        (read-syntax file-name in)))
 
-  (with-handlers ([exn:fail:syntax:unbound?
-                   (lambda (exn)
-                     (define exprs (exn:fail:syntax-exprs exn))
-                     (cond
-                       [(empty? exprs)
-                        (void)]
-                       [else
-                        (write-lint-message/syntax (first exprs) "unbound identifier")]))]
-                  [exn:fail:syntax?
-                   (lambda (exn)
-                     (define exprs (exn:fail:syntax-exprs exn))
-                     (cond
-                       [(empty? exprs)
-                        (void)]
-                       [else
-                        (cond
-                          [(string-contains? (exn-message exn) "duplicate binding")
-                           (write-lint-message/syntax (first exprs) "duplicate binding")]
-                          [(string-contains? (exn-message exn) "bad syntax")
-                           (write-lint-message/syntax (first exprs) "bad syntax")]
-                          [else
-                           (write-lint-message/syntax (first exprs) "error detected")])]))]
-                  [exn:fail:filesystem:missing-module?
-                   (lambda (exn)
-                     (define stx (find-matching-module-path file-stx (exn:fail:filesystem:missing-module-path exn)))
-                     (write-lint-message/syntax stx "cannot open module file"))]
-                  [exn:fail?
-                   (lambda (exn)
-                     (eprintf "~a" (exn-message exn)))])
-    (parameterize ([current-namespace (make-base-namespace)])
-      (expand file-stx)))
+    (with-handlers ([exn:fail:syntax:unbound?
+                     (lambda (exn)
+                       (define exprs (exn:fail:syntax-exprs exn))
+                       (cond
+                         [(empty? exprs)
+                          (void)]
+                         [else
+                          (write-lint-message/syntax (first exprs) "unbound identifier")]))]
+                    [exn:fail:syntax?
+                     (lambda (exn)
+                       (define exprs (exn:fail:syntax-exprs exn))
+                       (cond
+                         [(empty? exprs)
+                          (void)]
+                         [else
+                          (cond
+                            [(string-contains? (exn-message exn) "duplicate binding")
+                             (write-lint-message/syntax (first exprs) "duplicate binding")]
+                            [(string-contains? (exn-message exn) "bad syntax")
+                             (write-lint-message/syntax (first exprs) "bad syntax")]
+                            [else
+                             (write-lint-message/syntax (first exprs) "error detected")])]))]
+                    [exn:fail:filesystem:missing-module?
+                     (lambda (exn)
+                       (define stx (find-matching-module-path file-stx (exn:fail:filesystem:missing-module-path exn)))
+                       (write-lint-message/syntax stx "cannot open module file"))]
+                    [exn:fail?
+                     (lambda (exn)
+                       (eprintf "~a" (exn-message exn)))])
+      (parameterize ([current-namespace (make-base-namespace)])
+        (expand file-stx))))
   (void))
 
 (define (write-lint-message/syntax stx message)
