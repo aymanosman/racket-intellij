@@ -6,13 +6,15 @@
          racket/string
          "lint-with-expand/find-matching-module-path.rkt")
 
-(define (display-expand-errors in [file-name "<stdin>"])
+(define (display-expand-errors in [source-name "<stdin>"])
   (with-handlers ([exn:fail:read?
                    (lambda (exn)
-                     (write-lint-message 0 "read failed"))])
-    (define file-stx
-      (parameterize ([read-accept-reader #t])
-        (read-syntax file-name in)))
+                     (write-lint-message 0 "read failed"))]
+                  [exn:fail:filesystem:missing-module?
+                   (lambda (exn)
+                     (write-lint-message 0 "collection not found" (symbol->string (exn:fail:filesystem:missing-module-path exn))))])
+
+    (define file-stx (read-syntax/lang source-name in))
 
     (with-handlers ([exn:fail:syntax:unbound?
                      (lambda (exn)
@@ -52,3 +54,7 @@
 
 (define (write-lint-message offset message [detail ""])
   (printf "~s ~s ~a\n" offset message detail))
+
+(define (read-syntax/lang source-name in)
+  (parameterize ([read-accept-reader #t])
+    (read-syntax source-name in)))
